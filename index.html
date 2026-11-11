@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Smart Player Match Day</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: TV-broadcast match screen. Scoreboard + health bars on top, pitch stage on the left,
+   decision panel on the right (stacked on phones), host control bar at the bottom.
+   Single deliberate look (night stadium, brochure greens + gold), so no light theme. */
+:root{
+  --night:#05130b;          /* stadium night, page background */
+  --turf:#0f5a2c;           /* brochure dark green */
+  --turf-2:#14713a;         /* brochure field green */
+  --chalk:#f3f7f1;          /* lines and main text */
+  --gold:#f6c90e;           /* brochure yellow, the one accent */
+  --mist:#a7c3b0;           /* secondary text, green-tinted grey */
+  --panel:#0b2415;          /* cards */
+  --panel-2:#103020;
+  --edge:rgba(243,247,241,.14);
+  --water:#62c9ff;          /* hydration bar (semantic) */
+  --good:#7ee08a;           /* semantic good */
+  --warn:#f6c90e;           /* semantic caution */
+  --bad:#ff5b4f;            /* semantic danger */
+  --display:"Barlow Condensed","Arial Narrow","Roboto Condensed","Helvetica Neue",Impact,sans-serif;
+  --body:"Barlow","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--night);color:var(--chalk);font-family:var(--body);
+  font-size:clamp(15px,1.15vw,20px);line-height:1.45;
+}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--night)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,.card:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.app{
+  min-height:100%;display:grid;grid-template-rows:auto 1fr auto;gap:clamp(10px,1.2vw,18px);
+  padding-block:clamp(10px,1.2vw,18px);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  background:
+    radial-gradient(60% 40% at 15% -5%,rgba(246,201,14,.12),transparent 70%),
+    radial-gradient(60% 40% at 85% -5%,rgba(246,201,14,.10),transparent 70%),
+    var(--night);
+}
+
+/* ---------- Scoreboard / HUD ---------- */
+.hud{display:grid;grid-template-columns:auto 1fr;gap:clamp(10px,1.5vw,24px);align-items:center;
+  background:linear-gradient(180deg,#0d2a18,#08190f);border:1px solid var(--edge);border-radius:14px;padding:10px clamp(12px,1.4vw,22px)}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brand-badge{width:46px;height:46px;flex:none}
+.brand-name{font-family:var(--display);font-weight:800;letter-spacing:.04em;text-transform:uppercase;line-height:.95;font-size:clamp(20px,1.9vw,32px)}
+.brand-name span{color:var(--gold);display:block;font-size:.62em;letter-spacing:.14em}
+.board{display:grid;grid-template-columns:auto 1fr;gap:clamp(10px,1.4vw,22px);align-items:center;min-width:0}
+.clock{font-family:var(--display);font-weight:800;font-size:clamp(26px,2.6vw,44px);background:#000;color:var(--gold);
+  border-radius:8px;padding:2px 14px;min-width:3.6em;text-align:center;font-variant-numeric:tabular-nums;letter-spacing:.03em}
+.bars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(8px,1.2vw,20px)}
+.bar-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-family:var(--display);font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-size:clamp(13px,1vw,18px)}
+.bar-top b{font-variant-numeric:tabular-nums;font-size:1.25em;letter-spacing:.02em}
+.track{position:relative;height:clamp(12px,1.1vw,18px);border-radius:99px;background:rgba(255,255,255,.1);overflow:visible}
+.fill{position:absolute;inset:0 auto 0 0;border-radius:99px;transition:width 1.1s cubic-bezier(.2,.8,.2,1),background-color .6s}
+.slow .fill{transition-duration:3s}
+#bar-energy .fill{background:var(--gold)}
+#bar-hydration .fill{background:var(--water)}
+#bar-risk .fill{background:var(--good)}
+#bar-risk.mid .fill{background:var(--warn)}
+#bar-risk.high .fill{background:var(--bad)}
+.bar-note{font-size:.72em;color:var(--mist);margin-top:3px}
+.delta{margin-left:auto;margin-right:6px;font-family:var(--display);font-weight:800;font-size:1.15em;line-height:1.2;letter-spacing:.02em;
+  padding:0 8px;border-radius:6px;animation:pop 2.4s ease forwards;pointer-events:none}
+.delta.up{background:var(--good);color:#06240f}
+.delta.down{background:var(--bad);color:#2a0300}
+@keyframes pop{0%{opacity:0;transform:translateY(8px) scale(.7)}12%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0;transform:translateY(-10px)}}
+
+/* ---------- Main ---------- */
+.main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:clamp(10px,1.4vw,22px);min-height:0;align-items:start}
+.stage{position:relative;border-radius:16px;overflow:hidden;height:clamp(260px,calc(100vh - 230px),720px);border:1px solid var(--edge);
+  background:repeating-linear-gradient(90deg,var(--turf) 0 10%,var(--turf-2) 10% 20%)}
+.stage::before{ /* crowd + floodlight glow */
+  content:"";position:absolute;inset:0 0 auto;height:22%;
+  background:
+   radial-gradient(circle at 10% 30%,rgba(255,255,255,.18) 0 2px,transparent 3px) 0 0/18px 14px,
+   linear-gradient(180deg,#0a1a10,#0d2a17 70%,transparent);
+  opacity:.9}
+.pitch-lines{position:absolute;inset:18% 4% 4% 4%;width:92%;height:78%}
+.stage-tag{position:absolute;left:14px;top:12px;display:flex;gap:8px;flex-wrap:wrap;z-index:2}
+.chip{font-family:var(--display);font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:clamp(12px,.95vw,16px);
+  background:rgba(0,0,0,.55);border:1px solid var(--edge);padding:3px 10px;border-radius:99px;display:inline-flex;gap:6px;align-items:center}
+.chip.gold{background:var(--gold);color:#111;border-color:var(--gold)}
+.player-wrap{position:absolute;left:50%;bottom:7%;width:clamp(120px,15vw,220px);transform:translateX(-50%);z-index:2}
+.player{width:100%;height:auto;display:block;animation:bob 2.4s ease-in-out infinite;transform-origin:50% 100%}
+@keyframes bob{50%{transform:translateY(-4px)}}
+.shadow{position:absolute;left:15%;right:15%;bottom:-4px;height:12px;border-radius:50%;background:rgba(0,0,0,.35);filter:blur(2px)}
+.running .player{animation:bob .35s ease-in-out infinite}
+.running .leg-l{animation:legL .35s ease-in-out infinite alternate}
+.running .leg-r{animation:legR .35s ease-in-out infinite alternate}
+.leg-l,.leg-r{transform-box:fill-box;transform-origin:50% 0}
+@keyframes legL{from{transform:rotate(18deg)}to{transform:rotate(-18deg)}}
+@keyframes legR{from{transform:rotate(-18deg)}to{transform:rotate(18deg)}}
+.sweat,.pain,.zz{opacity:0;transition:opacity .6s}
+.is-thirsty .sweat{opacity:1;animation:drip 1.4s ease-in infinite}
+@keyframes drip{from{transform:translateY(0)}to{transform:translateY(10px);opacity:0}}
+.is-hurt .pain{opacity:1;animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+.is-tired .zz{opacity:1}
+.is-tired .player{animation-duration:4s;transform:rotate(-3deg)}
+.ball{position:absolute;bottom:8%;left:calc(50% + clamp(60px,7vw,110px));width:clamp(28px,2.6vw,44px);z-index:2}
+.running .ball{animation:roll .7s linear infinite}
+@keyframes roll{to{transform:rotate(360deg)}}
+.status-line{position:absolute;right:12px;bottom:12px;z-index:2;max-width:55%;text-align:right}
+.flash{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:3}
+.flash.good{animation:flash .9s ease;background:radial-gradient(circle,rgba(126,224,138,.45),transparent 70%)}
+.flash.bad{animation:flash .9s ease;background:radial-gradient(circle,transparent 30%,rgba(255,91,79,.55))}
+@keyframes flash{30%{opacity:1}100%{opacity:0}}
+.shake{animation:shake .45s}
+@keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+#confetti{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:4}
+
+.panel{display:flex;flex-direction:column;gap:clamp(10px,1.1vw,16px);min-width:0}
+.eyebrow{font-family:var(--display);font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);font-size:clamp(13px,1vw,18px)}
+h1,h2{font-family:var(--display);font-weight:800;text-transform:uppercase;line-height:.95;margin:0;text-wrap:balance;letter-spacing:.01em}
+h1{font-size:clamp(44px,6vw,104px)}
+h1 em{font-style:normal;color:var(--gold)}
+h2{font-size:clamp(28px,2.8vw,52px)}
+.situation{font-size:clamp(17px,1.45vw,26px);margin:0;max-width:40ch}
+.muted{color:var(--mist)}
+.cards{display:grid;gap:clamp(8px,.9vw,14px)}
+.card{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:clamp(10px,1vw,16px);align-items:center;text-align:left;
+  background:var(--panel);border:2px solid var(--edge);border-radius:14px;padding:clamp(10px,1vw,16px);
+  transition:transform .2s,border-color .2s,opacity .4s,background-color .3s}
+.card:hover{border-color:rgba(246,201,14,.6)}
+.card:active{transform:scale(.99)}
+.key{font-family:var(--display);font-weight:800;font-size:clamp(28px,2.6vw,46px);width:1.4em;height:1.4em;display:grid;place-items:center;
+  border-radius:10px;background:var(--gold);color:#111;line-height:1}
+.label{font-weight:600;font-size:clamp(16px,1.3vw,24px);line-height:1.2}
+.votes{display:flex;align-items:center;gap:6px}
+.count{font-family:var(--display);font-weight:800;font-size:clamp(26px,2.4vw,42px);min-width:1.6em;text-align:center;font-variant-numeric:tabular-nums}
+.mini{border:1px solid var(--edge);background:transparent;border-radius:8px;width:2em;height:2em;display:grid;place-items:center;font-weight:700}
+.mini:hover{background:rgba(255,255,255,.08)}
+.vote-meter{grid-column:1/-1;height:6px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.vote-meter i{display:block;height:100%;width:0;background:var(--gold);transition:width .4s}
+.card.win{border-color:var(--gold);background:var(--panel-2)}
+.card.win.good{border-color:var(--good)}
+.card.win.bad{border-color:var(--bad)}
+.card.lose{opacity:.4;padding-block:6px}
+.card.lose .key{font-size:clamp(18px,1.6vw,28px)}
+.card.lose .label,.card.lose .count{font-size:clamp(14px,1.05vw,19px)}
+.card.tie{border-color:var(--gold);animation:pulse 1s infinite}
+.result-tag{grid-column:1/-1;font-family:var(--display);font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.good-t{color:var(--good)} .bad-t{color:var(--bad)} .ok-t{color:var(--warn)}
+.feedback{background:var(--panel);border:1px solid var(--edge);border-left:6px solid var(--gold);border-radius:12px;padding:clamp(12px,1.2vw,18px)}
+.feedback.good{border-left-color:var(--good)} .feedback.bad{border-left-color:var(--bad)} .feedback.ok{border-left-color:var(--warn)}
+.feedback p{margin:.2em 0 0;font-size:clamp(17px,1.4vw,25px);font-weight:600}
+.fx-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.fx{font-family:var(--display);font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:6px;padding:1px 8px;font-size:clamp(13px,1vw,17px)}
+.fx.up{background:rgba(126,224,138,.18);color:var(--good)} .fx.down{background:rgba(255,91,79,.18);color:var(--bad)}
+.coach{border:2px dashed rgba(246,201,14,.55);border-radius:12px;padding:clamp(10px,1.1vw,16px)}
+.coach .frames{display:grid;gap:4px;font-size:clamp(17px,1.4vw,25px);font-weight:600;margin-top:4px}
+.coach .who{color:var(--mist);font-size:.85em;margin-top:6px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{font-family:var(--display);font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:clamp(17px,1.4vw,24px);
+  border:0;border-radius:12px;padding:.55em 1.2em;background:var(--gold);color:#111}
+.btn:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--chalk);border:2px solid var(--edge)}
+.hint{font-size:.82em;color:var(--mist)}
+.rules{display:grid;gap:10px;margin:0;padding:0;list-style:none;counter-reset:r}
+.rules li{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;font-size:clamp(17px,1.35vw,24px);font-weight:600}
+.rules li::before{counter-increment:r;content:counter(r);font-family:var(--display);font-weight:800;background:var(--gold);color:#111;width:1.7em;height:1.7em;border-radius:50%;display:grid;place-items:center}
+.seg{display:inline-flex;border:1px solid var(--edge);border-radius:10px;overflow:hidden}
+.seg button{background:transparent;border:0;padding:.35em .9em;font-weight:600}
+.seg button[aria-pressed="true"]{background:var(--gold);color:#111}
+.badge{font-family:var(--display);font-weight:800;text-transform:uppercase;font-size:clamp(40px,4.6vw,84px);line-height:.9}
+.badge.healthy{color:var(--good)} .badge.tired{color:var(--warn)} .badge.risk{color:var(--bad)}
+.recap{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.recap li{display:grid;grid-template-columns:7.5em minmax(0,1fr);gap:10px;background:var(--panel);border-radius:10px;padding:8px 12px;border:1px solid var(--edge)}
+.recap .s{font-family:var(--display);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mist)}
+.disclaimer{font-size:.85em;color:var(--mist);border-top:1px solid var(--edge);padding-top:8px}
+.big-q{font-family:var(--display);font-weight:800;font-size:clamp(30px,3.4vw,62px);line-height:1;text-transform:none}
+.team{display:grid;grid-template-columns:repeat(auto-fit,minmax(9.5em,1fr));gap:8px}
+.team div{background:var(--panel);border:1px solid var(--edge);border-radius:10px;padding:8px 10px}
+.team b{display:block;font-family:var(--display);font-size:1.2em;letter-spacing:.04em}
+
+/* ---------- Host bar ---------- */
+.hostbar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;
+  border-top:1px solid var(--edge);padding-top:10px;font-size:clamp(13px,.9vw,15px);color:var(--mist)}
+.hostbar .row{gap:8px}
+.tool{background:transparent;border:1px solid var(--edge);border-radius:8px;padding:.35em .8em;color:var(--chalk)}
+.tool:hover{background:rgba(255,255,255,.07)}
+.timer{font-family:var(--display);font-weight:800;font-size:1.6em;color:var(--chalk);font-variant-numeric:tabular-nums;letter-spacing:.04em}
+.timer.low{color:var(--warn)} .timer.over{color:var(--bad)}
+kbd{font-family:var(--body);border:1px solid var(--edge);border-bottom-width:2px;border-radius:4px;padding:0 5px;color:var(--chalk)}
+
+@media (max-width:860px){
+  .main{grid-template-columns:minmax(0,1fr)}
+  .stage{height:auto;min-height:260px}
+  .hud{grid-template-columns:minmax(0,1fr)}
+  .board{grid-template-columns:minmax(0,1fr)}
+  .clock{justify-self:start}
+  .bars{grid-template-columns:minmax(0,1fr)}
+  .keys-hint{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <header class="hud">
+    <div class="brand">
+      <svg class="brand-badge" viewBox="0 0 48 48" aria-hidden="true">
+        <path d="M24 2 44 9v14c0 12-8.5 20-20 23C12.5 43 4 35 4 23V9z" fill="#14713a" stroke="#f6c90e" stroke-width="2.5"/>
+        <circle cx="24" cy="23" r="9" fill="#f3f7f1"/>
+        <path d="m24 17 5 3.6-1.9 5.9h-6.2L19 20.6z" fill="#05130b"/>
+      </svg>
+      <div class="brand-name">Smart Player<span>Match Day Challenge</span></div>
+    </div>
+    <div class="board">
+      <div class="clock" id="clock" aria-label="Match clock">--'</div>
+      <div class="bars">
+        <div class="bar" id="bar-energy">
+          <div class="bar-top"><span>Energy</span><b id="v-energy">100</b></div>
+          <div class="track"><div class="fill" style="width:100%"></div></div>
+        </div>
+        <div class="bar" id="bar-hydration">
+          <div class="bar-top"><span>Hydration</span><b id="v-hydration">70</b></div>
+          <div class="track"><div class="fill" style="width:70%"></div></div>
+        </div>
+        <div class="bar" id="bar-risk">
+          <div class="bar-top"><span>Injury risk</span><b id="v-risk">20</b></div>
+          <div class="track"><div class="fill" style="width:20%"></div></div>
+          <div class="bar-note">Lower is better</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="stage" id="stage" aria-label="Pitch">
+      <svg class="pitch-lines" viewBox="0 0 400 220" preserveAspectRatio="none" aria-hidden="true">
+        <g fill="none" stroke="rgba(243,247,241,.5)" stroke-width="2">
+          <rect x="2" y="2" width="396" height="216"/>
+          <line x1="200" y1="2" x2="200" y2="218"/>
+          <circle cx="200" cy="110" r="34"/>
+          <rect x="2" y="55" width="52" height="110"/><rect x="346" y="55" width="52" height="110"/>
+          <rect x="2" y="85" width="18" height="50"/><rect x="380" y="85" width="18" height="50"/>
+        </g>
+        <circle cx="200" cy="110" r="3" fill="rgba(243,247,241,.7)"/>
+      </svg>
+      <div class="stage-tag">
+        <span class="chip gold" id="scene-chip">Match day</span>
+        <span class="chip">
+          <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5" fill="#f6c90e"/><g stroke="#f6c90e" stroke-width="2"><path d="M12 1v4M12 19v4M1 12h4M19 12h4M4.2 4.2l2.8 2.8M17 17l2.8 2.8M4.2 19.8 7 17M17 7l2.8-2.8"/></g></svg>
+          Barranquilla · 32 °C
+        </span>
+      </div>
+      <div class="player-wrap" id="player-wrap">
+        <div class="shadow"></div>
+        <svg class="player" viewBox="0 0 120 200" role="img" aria-label="Sam, number 7">
+          <!-- legs -->
+          <g class="leg-l"><rect x="44" y="118" width="13" height="50" rx="6" fill="#8a5a3c"/><rect x="43" y="140" width="15" height="28" rx="5" fill="#f6c90e"/><path d="M40 166h20v9H36a4 4 0 0 1 4-9z" fill="#111"/></g>
+          <g class="leg-r"><rect x="63" y="118" width="13" height="50" rx="6" fill="#8a5a3c"/><rect x="62" y="140" width="15" height="28" rx="5" fill="#f6c90e"/><path d="M60 166h20a4 4 0 0 1 4 9H60z" fill="#111"/></g>
+          <ellipse class="pain" cx="70" cy="136" rx="12" ry="9" fill="rgba(255,91,79,.75)"/>
+          <!-- shorts -->
+          <path d="M40 100h40l3 26H63l-3-10-3 10H37z" fill="#0b0f0c"/>
+          <!-- arms -->
+          <rect x="28" y="58" width="12" height="44" rx="6" fill="#8a5a3c" transform="rotate(12 28 60)"/>
+          <rect x="80" y="58" width="12" height="44" rx="6" fill="#8a5a3c" transform="rotate(-12 92 60)"/>
+          <!-- shirt -->
+          <path d="M36 52 48 46h24l12 6 10 16-10 6-4-6v34H40V68l-4 6-10-6z" fill="#14713a" stroke="#f6c90e" stroke-width="2"/>
+          <text x="60" y="88" text-anchor="middle" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="800" font-size="26" fill="#f6c90e">7</text>
+          <!-- head -->
+          <rect x="54" y="38" width="12" height="10" fill="#8a5a3c"/>
+          <circle cx="60" cy="27" r="15" fill="#8a5a3c"/>
+          <path d="M45 24c0-10 7-15 15-15s15 5 15 13c-5-4-11-5-15-5s-10 2-15 7z" fill="#1b120c"/>
+          <circle cx="55" cy="28" r="1.8" fill="#111"/><circle cx="65" cy="28" r="1.8" fill="#111"/>
+          <path d="M55 35q5 3 10 0" stroke="#111" stroke-width="1.6" fill="none"/>
+          <!-- sweat -->
+          <g class="sweat" fill="#62c9ff"><path d="M78 18c2 4 3 6 0 7s-3-3 0-7z"/><path d="M42 26c2 4 3 6 0 7s-3-3 0-7z"/></g>
+          <!-- zzz -->
+          <g class="zz" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="800" fill="#f3f7f1"><text x="82" y="12" font-size="12">z</text><text x="92" y="4" font-size="9">z</text></g>
+        </svg>
+      </div>
+      <svg class="ball" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="#f3f7f1" stroke="#05130b" stroke-width="2"/><path d="m20 11 7 5-2.7 8h-8.6L13 16z" fill="#05130b"/><path d="M20 11V3M27 16l7-3M24.3 24l5 6M15.7 24l-5 6M13 16l-7-3" stroke="#05130b" stroke-width="2"/></svg>
+      <div class="status-line" id="status-line"></div>
+      <div class="flash" id="flash"></div>
+      <canvas id="confetti"></canvas>
+    </section>
+
+    <section class="panel" id="panel" aria-live="polite"></section>
+  </main>
+
+  <footer class="hostbar">
+    <div class="row">
+      <button class="tool" id="btn-restart" type="button">Restart</button>
+      <button class="tool" id="btn-skip" type="button">Skip animation</button>
+      <button class="tool" id="btn-full" type="button">Fullscreen</button>
+    </div>
+    <div class="row keys-hint"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> add a vote · <kbd>Shift</kbd>+number removes one · <kbd>Enter</kbd> next · <kbd>F</kbd> fullscreen</div>
+    <div class="row">Activity time <span class="timer" id="timer">5:00</span><button class="tool" id="btn-timer" type="button">Start</button></div>
+  </footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ===== Game data (rules are on screen and in the team document) ===== */
+var START = {energy:100, hydration:70, risk:20};
+var ACTIVITY_SECONDS = 300; // 6 rounds + short Q&A: about 35–40 seconds each
+
+var SCENES = [
+  {tag:"Round 1/6 · Before kick-off", clock:"-5'", title:"The late arrival",
+   text:"Sam arrives just five minutes before kick-off. His usual warm-up needs more time. What should the coach do?", host:"Luis", question:"Which preparation step matters most?", options:[
+    {label:"Start a short progressive warm-up and ask the coach for a later substitution",fx:{energy:-4,risk:-12},rating:"good",feedback:"Best balance. Sam starts moving progressively and does not rush into intense play.",lesson:"Allow enough time for a gradual warm-up."},
+    {label:"Join the easy passing drill and gradually increase the pace",fx:{energy:-6,risk:2},rating:"ok",feedback:"A useful start, but easy passing alone may not prepare him for the full intensity.",lesson:"Ball drills should be part of a broader warm-up."},
+    {label:"Focus on standing stretches, then start playing at a reduced pace",fx:{energy:-2,risk:13},rating:"bad",feedback:"Lower intensity helps, but standing stretches alone do not substitute for progressive active preparation.",lesson:"Use progressive movement, not only static stretching."}
+   ]},
+  {tag:"Round 2/6 · First half", clock:"18'", title:"The ankle twist",
+   text:"At minute 18 Sam turns quickly. His ankle feels uncomfortable, but he can walk. The team needs him. What is the safest next step?",host:"Nelson",question:"Why could playing through discomfort be a problem?",options:[
+    {label:"Pause, tell the coach and have the ankle assessed before returning",fx:{energy:4,risk:-12},rating:"good",feedback:"Good judgement. A new ankle problem should not be ignored; assess it before deciding to return.",lesson:"Do not play through a possible injury."},
+    {label:"Walk briefly, test the ankle and rejoin only if the discomfort fades",fx:{energy:1,risk:10},rating:"ok",feedback:"Checking symptoms matters, but improvement after a short walk does not rule out injury.",lesson:"Tell a coach and get an appropriate assessment."},
+    {label:"Move to defense and avoid sprinting for the next ten minutes",fx:{energy:3,risk:24},rating:"bad",feedback:"Changing position does not solve a possible injury and may make it worse.",lesson:"Stop and assess possible injuries."}
+   ]},
+  {tag:"Round 3/6 · Hot weather", clock:"35'", title:"A hot afternoon",
+   text:"At 35 minutes in Barranquilla, Sam is thirsty and tired, but not dizzy. There is a short break. What plan works best?",host:"Breiner",question:"Why might two choices seem reasonable?",options:[
+    {label:"Drink water, cool down in shade and tell the coach how he feels",fx:{hydration:24,energy:5,risk:-7},rating:"good",feedback:"Good all-round plan: fluid, cooling and honest communication about symptoms.",lesson:"Use breaks for fluids, cooling and checking symptoms."},
+    {label:"Drink some water and return when the break ends",fx:{hydration:19,energy:1,risk:2},rating:"ok",feedback:"Hydration helps. He should also cool down and be alert to warning symptoms.",lesson:"Do not overlook heat exposure and symptoms."},
+    {label:"Cool down in shade and save water until half-time",fx:{hydration:-12,energy:4,risk:12},rating:"bad",feedback:"Shade helps, but delaying drinking while thirsty is a poor trade-off.",lesson:"Drink during available breaks."}
+   ]},
+  {tag:"Round 4/6 · Second half", clock:"65'", title:"The coach's substitution",
+   text:"Sam has played for an hour. He is tired and his sprinting is slower, but he has no injury symptoms. What should the coach choose?",host:"Joseph",question:"How does teamwork help Sam stay healthy?",options:[
+    {label:"Substitute Sam and let a fresh teammate finish the match",fx:{energy:13,risk:-11},rating:"good",feedback:"A substitution manages accumulated fatigue and supports the team.",lesson:"Teamwork includes recognizing fatigue."},
+    {label:"Keep Sam on for ten minutes with fewer high-intensity runs",fx:{energy:-7,risk:6},rating:"ok",feedback:"Reducing workload may help, but fatigue continues and he needs monitoring.",lesson:"Adjust playing time when fatigue increases."},
+    {label:"Move Sam to a less demanding position until the match ends",fx:{energy:-11,risk:13},rating:"bad",feedback:"A new position may be less intense, but playing while fatigued still adds load.",lesson:"A change of position is not the same as recovery."}
+   ]},
+  {tag:"Round 5/6 · Final whistle", clock:"90'", title:"Recovery starts now",
+   text:"The match ends. Sam is sweaty and tired. He has an hour before going home. Which recovery plan is most complete?",host:"Oscar",question:"What part of recovery is easiest to forget?",options:[
+    {label:"Cool down, drink water, have a meal and prepare for a good night's sleep",fx:{energy:19,hydration:20,risk:-10},rating:"good",feedback:"A balanced plan includes fluids, nutrition, gradual cooling down and later sleep.",lesson:"Recovery involves several habits, not one shortcut."},
+    {label:"Have a meal and rest, then drink plenty of water at home",fx:{energy:12,hydration:8,risk:-3},rating:"ok",feedback:"Food and rest are helpful, but replacing fluids should not be put off unnecessarily.",lesson:"Hydrate after the match as well as eating and resting."},
+    {label:"Take a cold shower, stretch and skip food until dinner",fx:{energy:7,hydration:-5,risk:5},rating:"bad",feedback:"Cooling down may feel good, but this plan neglects fluids and timely food.",lesson:"Do not treat a shower as complete recovery."}
+   ]},
+  {tag:"Round 6/6 · Next day",clock:"+1 day",title:"The next-day invitation",
+   text:"Sam's friends invite him to play another competitive match early tomorrow. He still feels tired after today's match. What is the better plan?",host:"Nelson",question:"What advice would you give your own friend?",options:[
+    {label:"Choose a recovery day, sleep well and plan the next intense match later",fx:{energy:21,hydration:7,risk:-13},rating:"good",feedback:"A recovery day makes sense after a demanding match, especially with lingering fatigue.",lesson:"Make room for recovery between demanding matches."},
+    {label:"Sleep well and decide tomorrow morning whether to play fewer minutes",fx:{energy:12,hydration:5,risk:6},rating:"ok",feedback:"Reassessing is sensible, but a reduced match still creates physical load if Sam is not recovered.",lesson:"Check readiness and consider rest, not just fewer minutes."},
+    {label:"Promise to play, then rely on a longer warm-up in the morning",fx:{energy:3,risk:18},rating:"bad",feedback:"A good warm-up does not replace adequate recovery after heavy exertion.",lesson:"A warm-up cannot make up for poor recovery."}
+   ]}
+];
+
+var HALVES = [
+  {from:0,to:18,title:"Kick-off",text:"The game begins. Every player uses energy during play.",fx:{energy:-7,hydration:-5}},
+  {from:18,to:35,title:"First-half pressure",text:"The team keeps playing under the sun.",fx:{energy:-9,hydration:-10}},
+  {from:35,to:65,title:"Second half",text:"The match continues in hot weather.",fx:{energy:-11,hydration:-12}},
+  {from:65,to:90,title:"Closing minutes",text:"The last minutes require concentration and energy.",fx:{energy:-9,hydration:-7}},
+  {from:90,to:90,title:"Post-match",text:"The final whistle has blown. Recovery choices matter now.",fx:{energy:-3,hydration:-3}}
+];
+
+var RESULTS = {
+  healthy:{title:"Healthy player", sub:"Great decisions!", line:"You helped Sam balance preparation, safety, hydration, teamwork and recovery."},
+  tired:{title:"Tired player", sub:"Almost there. Sam needs better care.", line:"Some decisions reduced energy or increased simulated risk."},
+  risk:{title:"At risk", sub:"Your player needs more care.", line:"Some choices increased the simulated risk. Discuss what you would change."}
+};
+
+var LETTERS = ["A","B","C"];
+var KEYS = ["energy","hydration","risk"];
+
+/* ===== State ===== */
+var state;
+function fresh(){
+  return {screen:"title", scene:0, phase:"vote", votes:[0,0,0], tie:null,
+          stats:{energy:START.energy, hydration:START.hydration, risk:START.risk},
+          choices:[], mode:"count"};
+}
+
+var $ = function(id){ return document.getElementById(id); };
+var panel = $("panel"), stage = $("stage");
+
+function clamp(v){ return Math.max(0, Math.min(100, v)); }
+
+function applyFx(fx){
+  var applied = {};
+  KEYS.forEach(function(k){
+    if (!fx[k]) return;
+    var before = state.stats[k];
+    state.stats[k] = clamp(before + fx[k]);
+    applied[k] = state.stats[k] - before;
+  });
+  return applied;
+}
+
+function classify(s){
+  if (s.risk >= 60 || s.hydration < 25 || s.energy < 20) return "risk";
+  if (s.risk <= 30 && s.hydration >= 45 && s.energy >= 55) return "healthy";
+  return "tired";
+}
+
+/* ===== HUD ===== */
+function drawBars(fxShown){
+  KEYS.forEach(function(k){
+    var el = $("bar-" + k), v = state.stats[k];
+    el.querySelector(".fill").style.width = v + "%";
+    $("v-" + k).textContent = v;
+    if (k === "risk"){ el.classList.toggle("mid", v >= 30 && v < 60); el.classList.toggle("high", v >= 60); }
+    if (fxShown && fxShown[k]){
+      var d = document.createElement("span");
+      var good = k === "risk" ? fxShown[k] < 0 : fxShown[k] > 0;
+      d.className = "delta " + (good ? "up" : "down");
+      d.textContent = (fxShown[k] > 0 ? "+" : "") + fxShown[k];
+      var top = el.querySelector(".bar-top"); top.querySelectorAll(".delta").forEach(function(x){ x.remove(); }); top.insertBefore(d, top.lastElementChild);
+      setTimeout(function(){ d.remove(); }, 2500);
+    }
+  });
+  var w = $("player-wrap"), s = state.stats;
+  w.classList.toggle("is-thirsty", s.hydration < 40);
+  w.classList.toggle("is-hurt", s.risk >= 60);
+  w.classList.toggle("is-tired", s.energy < 40);
+  var notes = [];
+  if (s.hydration < 40) notes.push("Thirsty");
+  if (s.energy < 40) notes.push("Tired");
+  if (s.risk >= 60) notes.push("Muscle pain");
+  $("status-line").innerHTML = notes.map(function(n){ return '<span class="chip">' + n + '</span>'; }).join(" ");
+}
+
+function flash(kind){
+  var f = $("flash"); f.className = "flash"; void f.offsetWidth; f.className = "flash " + kind;
+  if (kind === "bad"){ stage.classList.remove("shake"); void stage.offsetWidth; stage.classList.add("shake"); }
+}
+
+/* ===== Screens ===== */
+function render(){
+  stage.classList.remove("running");
+  if (state.screen === "title") return renderTitle();
+  if (state.screen === "scene") return renderScene();
+  if (state.screen === "half") return renderHalf();
+  if (state.screen === "final") return renderFinal();
+  if (state.screen === "open") return renderOpen();
+  if (state.screen === "teacher") return renderTeacher();
+}
+
+function renderTitle(){
+  $("clock").textContent = "--'";
+  $("scene-chip").textContent = "Match day";
+  panel.innerHTML =
+    '<div class="eyebrow">Football &amp; Health · ILE Talks</div>' +
+    '<h1>Play smart,<br><em>stay healthy</em></h1>' +
+    '<p class="situation">You are Sam\'s coaching staff. Sam is playing the final of the university tournament. Every decision counts.</p>' +
+    '<ol class="rules">' +
+      '<li>Listen to the situation.</li>' +
+      '<li>Vote A, B or C. Raise your hand!</li>' +
+      '<li>Tell us why, in English.</li>' +
+    '</ol>' +
+    '<div class="row"><button class="btn" id="go" type="button">Kick off</button>' +
+    '<span class="hint">Voting:</span>' +
+    '<span class="seg" role="group" aria-label="Voting mode">' +
+      '<button type="button" data-mode="count" aria-pressed="' + (state.mode === "count") + '">Count hands</button>' +
+      '<button type="button" data-mode="pick" aria-pressed="' + (state.mode === "pick") + '">Quick pick</button>' +
+    '</span></div>' +
+    '<p class="hint">Six rounds in five minutes: vote fast, then explain your reasoning in English.</p>';
+  $("go").onclick = start;
+  panel.querySelectorAll("[data-mode]").forEach(function(b){
+    b.onclick = function(){ state.mode = b.dataset.mode; renderTitle(); };
+  });
+}
+
+function start(){
+  state.screen = "scene"; state.scene = 0; resetVotes();
+  startTimer();
+  render();
+}
+
+function resetVotes(){ state.phase = "vote"; state.votes = [0,0,0]; state.tie = null; }
+
+function fxChips(fx){
+  return KEYS.filter(function(k){ return fx[k]; }).map(function(k){
+    var good = k === "risk" ? fx[k] < 0 : fx[k] > 0;
+    var name = k === "risk" ? "Injury risk" : k.charAt(0).toUpperCase() + k.slice(1);
+    return '<span class="fx ' + (good ? "up" : "down") + '">' + name + ' ' + (fx[k] > 0 ? "+" : "") + fx[k] + '</span>';
+  }).join("");
+}
+
+function renderScene(){
+  var sc = SCENES[state.scene];
+  $("clock").textContent = sc.clock;
+  $("scene-chip").textContent = sc.tag;
+  var total = state.votes[0] + state.votes[1] + state.votes[2];
+  var html = '<div class="eyebrow">' + sc.tag + '</div><h2>' + sc.title + '</h2>';
+
+  if (state.phase === "vote"){
+    html += '<p class="situation">' + sc.text + '</p><div class="cards">';
+    sc.options.forEach(function(o, i){
+      var tieCls = state.tie && state.tie.indexOf(i) > -1 ? " tie" : "";
+      var pct = total ? Math.round(state.votes[i] / total * 100) : 0;
+      html += '<div class="card' + tieCls + '" role="button" tabindex="0" data-i="' + i + '" aria-label="Option ' + LETTERS[i] + ': ' + o.label + '">' +
+        '<span class="key">' + LETTERS[i] + '</span><span class="label">' + o.label + '</span>' +
+        (state.mode === "count" ?
+          '<span class="votes"><button class="mini" type="button" data-minus="' + i + '" aria-label="Remove a vote for ' + LETTERS[i] + '">−</button>' +
+          '<span class="count">' + state.votes[i] + '</span>' +
+          '<button class="mini" type="button" data-plus="' + i + '" aria-label="Add a vote for ' + LETTERS[i] + '">+</button></span>' +
+          '<span class="vote-meter"><i style="width:' + pct + '%"></i></span>'
+        : '<span class="hint">Click</span>') +
+      '</div>';
+    });
+    html += '</div>';
+    if (state.mode === "count"){
+      html += state.tie
+        ? '<p class="feedback"><strong>It\'s a tie!</strong> Host, click the winning card (or ask one more person to vote).</p>'
+        : '<div class="row"><button class="btn" id="reveal" type="button"' + (total ? "" : " disabled") + '>Reveal the decision</button>' +
+          '<span class="hint">' + total + ' vote' + (total === 1 ? "" : "s") + ' · ' + sc.host + ' explains the result</span></div>';
+    }
+    panel.innerHTML = html;
+    bindVote();
+    return;
+  }
+
+  // reveal phase
+  var ch = state.choices[state.scene], o = sc.options[ch.i];
+  html += '<div class="cards">';
+  sc.options.forEach(function(opt, i){
+    var win = i === ch.i;
+    html += '<div class="card ' + (win ? "win " + opt.rating : "lose") + '">' +
+      '<span class="key">' + LETTERS[i] + '</span><span class="label">' + opt.label + '</span>' +
+      (state.mode === "count" ? '<span class="count">' + state.votes[i] + '</span>' : '<span></span>') +
+      (win ? '<span class="result-tag ' + opt.rating + '-t">' + (opt.rating === "good" ? "Smart choice" : opt.rating === "ok" ? "Reasonable, with limits" : "Less suitable choice") + '</span>' : '') +
+    '</div>';
+  });
+  html += '</div>';
+  html += '<div class="feedback ' + o.rating + '"><div class="eyebrow">' + sc.host + ' explains</div><p>' + o.feedback + '</p><div class="fx-list">' + fxChips(o.fx) + '</div></div>';
+  html += '<div class="coach"><div class="eyebrow">Coach\'s call</div><div class="frames">' +
+          '<span>“I think Sam should ___ because ___.”</span><span>“If Sam ___, Sam will ___.”</span></div>' +
+          '<div class="who">' + sc.host + ' asks: ' + (o.rating === "good" ? sc.question : (sc.altQuestion || sc.question)) + '</div></div>';
+  html += '<div class="row"><button class="btn" id="next" type="button">' + (state.scene < SCENES.length - 1 ? "Continue the match" : "See the final result") + '</button></div>';
+  panel.innerHTML = html;
+  $("next").onclick = next;
+}
+
+function bindVote(){
+  panel.querySelectorAll(".card").forEach(function(c){
+    var i = +c.dataset.i;
+    var act = function(e){
+      if (e.target.closest(".mini")) return;
+      if (state.mode === "pick" || state.tie){ if (!state.tie || state.tie.indexOf(i) > -1) choose(i); }
+      else addVote(i, 1);
+    };
+    c.addEventListener("click", act);
+    c.addEventListener("keydown", function(e){ if (e.key === "Enter" || e.key === " "){ e.preventDefault(); e.stopPropagation(); act(e); } });
+  });
+  panel.querySelectorAll("[data-plus]").forEach(function(b){ b.onclick = function(){ addVote(+b.dataset.plus, 1); }; });
+  panel.querySelectorAll("[data-minus]").forEach(function(b){ b.onclick = function(){ addVote(+b.dataset.minus, -1); }; });
+  var r = $("reveal"); if (r) r.onclick = reveal;
+}
+
+function addVote(i, d){
+  if (state.screen !== "scene" || state.phase !== "vote" || state.mode !== "count" || state.tie) return;
+  state.votes[i] = Math.max(0, state.votes[i] + d);
+  renderScene();
+}
+
+function reveal(){
+  var max = Math.max.apply(null, state.votes);
+  if (!max) return;
+  var top = [0,1,2].filter(function(i){ return state.votes[i] === max; });
+  if (top.length > 1){ state.tie = top; renderScene(); return; }
+  choose(top[0]);
+}
+
+function choose(i){
+  var o = SCENES[state.scene].options[i];
+  var applied = applyFx(o.fx);
+  state.choices[state.scene] = {i:i};
+  state.phase = "reveal"; state.tie = null;
+  drawBars(applied);
+  flash(o.rating === "good" ? "good" : "bad");
+  renderScene();
+}
+
+var halfTimer = null;
+function next(){
+  if (state.screen === "scene" && state.phase === "reveal"){
+    if (state.scene < SCENES.length - 1){ state.screen = "half"; render(); }
+    else { state.screen = "final"; render(); }
+  } else if (state.screen === "half"){
+    finishHalf();
+  }
+}
+
+function renderHalf(){
+  var h = HALVES[state.scene];
+  $("scene-chip").textContent = h.title;
+  stage.classList.add("running");
+  panel.innerHTML = '<div class="eyebrow">The match goes on</div><h2>' + h.title + '</h2>' +
+    '<p class="situation">' + h.text + '</p>' +
+    '<div class="feedback"><div class="eyebrow">What happens to every player</div><div class="fx-list">' + fxChips(h.fx) + '</div></div>' +
+    '<div class="row"><button class="btn" id="next" type="button">Next round</button><span class="hint">Playing football uses energy and water. That is normal.</span></div>';
+  $("next").onclick = next;
+  document.body.classList.add("slow");
+  var applied = applyFx(h.fx);
+  drawBars(applied);
+  var t0 = performance.now(), dur = 850;
+  cancelAnimationFrame(halfTimer);
+  (function tick(t){
+    var p = Math.min(1, (t - t0) / dur);
+    $("clock").textContent = Math.round(h.from + (h.to - h.from) * p) + "'";
+    if (p < 1) halfTimer = requestAnimationFrame(tick);
+  })(t0);
+}
+
+function finishHalf(){
+  cancelAnimationFrame(halfTimer);
+  document.body.classList.remove("slow");
+  state.screen = "scene"; state.scene += 1; resetVotes();
+  render();
+}
+
+function skip(){
+  // jump any running animation to its end
+  cancelAnimationFrame(halfTimer);
+  document.body.classList.remove("slow");
+  if (state.screen === "half"){ $("clock").textContent = HALVES[state.scene].to + "'"; stage.classList.remove("running"); }
+}
+
+function renderFinal(){
+  var r = classify(state.stats), R = RESULTS[r];
+  $("clock").textContent = "FT";
+  $("scene-chip").textContent = "Full time";
+  var tips = [];
+  var recap = SCENES.map(function(sc, n){
+    var o = sc.options[state.choices[n].i];
+    if (o.rating !== "good") tips.push(o.lesson);
+    var cls = o.rating === "good" ? "good-t" : o.rating === "ok" ? "ok-t" : "bad-t";
+    return '<li><span class="s">' + ["Kick-off","Ankle","Heat","Fatigue","Recovery","Next day"][n] + '</span><span><span class="' + cls + '">' + LETTERS[state.choices[n].i] + '.</span> ' + o.label + '</span></li>';
+  }).join("");
+  panel.innerHTML = '<div class="eyebrow">Full time · Oscar reads the result</div>' +
+    '<div class="badge ' + r + '">' + R.title + '</div>' +
+    '<p class="situation"><strong>' + R.sub + '</strong> ' + R.line + '</p>' +
+    '<ul class="recap">' + recap + '</ul>' +
+    (tips.length ? '<div class="feedback ok"><div class="eyebrow">Coach\'s tip for next time</div><p>' + tips.join(" ") + '</p></div>' : '') +
+    '<p class="disclaimer">This is a game, not a medical test. Real health depends on many things, so listen to your body and ask a professional.</p>' +
+    '<div class="row"><button class="btn" id="open" type="button">Open question</button><button class="btn ghost" id="again" type="button">Play again</button></div>';
+  $("open").onclick = function(){ state.screen = "open"; render(); };
+  $("again").onclick = restart;
+  if (r === "healthy") confetti();
+  stage.classList.toggle("shake", false);
+}
+
+function renderOpen(){
+  panel.innerHTML = '<div class="eyebrow">Your turn · Joseph asks</div>' +
+    '<p class="big-q">What are you going to do differently at your next match?</p>' +
+    '<div class="coach"><div class="eyebrow">You can say</div><div class="frames">' +
+    '<span>“At my next match, I\'m going to ___.”</span><span>“I used to ___, but now I will ___.”</span></div></div>' +
+    '<div class="row"><button class="btn" id="ref" type="button">Referee\'s whistle: questions</button></div>';
+  $("ref").onclick = function(){ state.screen = "teacher"; render(); };
+}
+
+function renderTeacher(){
+  $("scene-chip").textContent = "Questions";
+  panel.innerHTML = '<div class="eyebrow">Referee\'s whistle</div>' +
+    '<p class="big-q">Do you have any questions for us?</p>' +
+    '<div class="team">' +
+      '<div><b>Nelson</b><span class="muted">Our idea &amp; the game</span></div>' +
+      '<div><b>Joseph</b><span class="muted">Benefits of football</span></div>' +
+      '<div><b>Luis</b><span class="muted">Warm-up &amp; injuries</span></div>' +
+      '<div><b>Breiner</b><span class="muted">Hydration</span></div>' +
+      '<div><b>Oscar</b><span class="muted">Rest &amp; recovery</span></div>' +
+    '</div>' +
+    '<p class="situation"><strong>Warm up · Hydrate · Rest.</strong> Thank you for playing smart with us!</p>' +
+    '<div class="row"><button class="btn ghost" id="again" type="button">Back to start</button></div>';
+  $("again").onclick = restart;
+}
+
+function restart(){
+  stopTimer();
+  state = fresh();
+  drawBars();
+  $("timer").textContent = fmt(ACTIVITY_SECONDS); $("timer").className = "timer";
+  render();
+}
+
+/* ===== Activity timer (5:00 countdown for the host) ===== */
+var tEnd = null, tLeft = ACTIVITY_SECONDS, tInt = null;
+function fmt(s){ var neg = s < 0; s = Math.abs(s); return (neg ? "-" : "") + Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
+function paint(){
+  var s = tEnd ? Math.round((tEnd - Date.now()) / 1000) : tLeft;
+  var el = $("timer"); el.textContent = fmt(s);
+  el.className = "timer" + (s < 0 ? " over" : s <= 60 ? " low" : "");
+}
+function startTimer(){ if (tInt) return; tEnd = Date.now() + tLeft * 1000; tInt = setInterval(paint, 250); $("btn-timer").textContent = "Pause"; paint(); }
+function pauseTimer(){ if (!tInt) return; tLeft = Math.round((tEnd - Date.now()) / 1000); clearInterval(tInt); tInt = null; tEnd = null; $("btn-timer").textContent = "Resume"; paint(); }
+function stopTimer(){ clearInterval(tInt); tInt = null; tEnd = null; tLeft = ACTIVITY_SECONDS; $("btn-timer").textContent = "Start"; }
+
+/* ===== Confetti (light, canvas) ===== */
+function confetti(){
+  if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  var c = $("confetti"), ctx = c.getContext("2d");
+  var W = c.width = stage.clientWidth, H = c.height = stage.clientHeight;
+  var colors = ["#f6c90e","#f3f7f1","#7ee08a","#14713a"];
+  var parts = Array.from({length:140}, function(){
+    return {x:W/2, y:H*0.55, vx:(Math.random()-.5)*12, vy:-Math.random()*12-4, s:4+Math.random()*6, r:Math.random()*6, c:colors[Math.random()*4|0]};
+  });
+  var t0 = performance.now();
+  (function f(t){
+    ctx.clearRect(0,0,W,H);
+    parts.forEach(function(p){ p.vy += .35; p.x += p.vx; p.y += p.vy; p.r += .2;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6); ctx.restore(); });
+    if (t - t0 < 3200) requestAnimationFrame(f); else ctx.clearRect(0,0,W,H);
+  })(t0);
+}
+
+/* ===== Controls ===== */
+$("btn-restart").onclick = restart;
+$("btn-skip").onclick = skip;
+$("btn-timer").onclick = function(){ tInt ? pauseTimer() : startTimer(); };
+$("btn-full").onclick = toggleFull;
+function toggleFull(){
+  try {
+    if (!document.fullscreenElement) { var p = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); if (p && p.catch) p.catch(function(){}); }
+    else if (document.exitFullscreen) document.exitFullscreen();
+  } catch(e) {}
+}
+
+document.addEventListener("keydown", function(e){
+  if (e.target.closest && e.target.closest("input,textarea")) return;
+  var n = {"Digit1":0,"Digit2":1,"Digit3":2,"Numpad1":0,"Numpad2":1,"Numpad3":2}[e.code];
+  if (n !== undefined && state.screen === "scene" && state.phase === "vote"){
+    e.preventDefault();
+    if (state.mode === "pick" || state.tie){ if (!state.tie || state.tie.indexOf(n) > -1) choose(n); }
+    else addVote(n, e.shiftKey ? -1 : 1);
+    return;
+  }
+  if (e.key === "Enter" && !(e.target.closest && e.target.closest("button,.card"))){
+    if (state.screen === "title") start();
+    else if (state.screen === "scene" && state.phase === "vote" && state.mode === "count") reveal();
+    else if (state.screen === "scene" || state.screen === "half") next();
+  }
+  if (e.key === "f" || e.key === "F") toggleFull();
+});
+
+state = fresh();
+drawBars();
+render();
+// expose for automated tests
+window.__smartPlayer = {get state(){ return state; }, classify:classify};
+})();
+</script>
+</body>
+</html>
