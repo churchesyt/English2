@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Smart Player Match Day</title>
+<title>Smart Player — Match Day Challenge | Interactive Edition</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -113,6 +113,46 @@ button:focus-visible,.card:focus-visible{outline:3px solid var(--gold);outline-o
 .running .ball{animation:roll .7s linear infinite}
 @keyframes roll{to{transform:rotate(360deg)}}
 .status-line{position:absolute;right:12px;bottom:12px;z-index:2;max-width:55%;text-align:right}
+.scene-note{display:inline-block;background:rgba(0,0,0,.55);border:1px solid var(--edge);border-radius:12px;padding:8px 12px;font-weight:700}
+.scene-props{position:absolute;inset:0;pointer-events:none;z-index:2}
+.prop{position:absolute;opacity:0;transform:translateY(10px) scale(.92);transition:opacity .45s,transform .45s}
+.stage[class*="scene-"] .prop.show{opacity:1;transform:none}
+.prop svg{display:block}
+.sun-hot{top:20%;right:11%;width:86px;height:86px;filter:drop-shadow(0 0 14px rgba(246,201,14,.35))}
+.bottle{right:11%;bottom:18%;width:44px;height:88px}
+.substitution-board{left:9%;top:33%;width:76px;height:110px}
+.cone{left:12%;bottom:12%;width:44px;height:54px}
+.bag{left:18%;bottom:11%;width:62px;height:54px}
+.med{right:11%;top:36%;width:62px;height:62px}
+.bench{left:8%;bottom:10%;width:118px;height:64px}
+.calendar{right:9%;top:26%;width:94px;height:90px}
+.heat-lines{position:absolute;right:8%;top:34%;width:68px;height:120px;opacity:0;transition:opacity .4s}
+.stage.scene-heat .heat-lines{opacity:1}
+.heat-lines i{position:absolute;left:0;right:0;height:18px;border:3px solid rgba(246,201,14,.55);border-color:rgba(246,201,14,.55) transparent transparent transparent;border-radius:50%;animation:wave 1.2s linear infinite}
+.heat-lines i:nth-child(2){top:28px;animation-delay:.2s}
+.heat-lines i:nth-child(3){top:56px;animation-delay:.4s}
+@keyframes wave{0%{transform:translateX(0)}50%{transform:translateX(6px)}100%{transform:translateX(0)}}
+.stage.scene-late{background:linear-gradient(180deg,rgba(246,201,14,.06),transparent 30%),repeating-linear-gradient(90deg,var(--turf) 0 10%,var(--turf-2) 10% 20%)}
+.stage.scene-ankle{background:linear-gradient(180deg,rgba(255,91,79,.06),transparent 30%),repeating-linear-gradient(90deg,var(--turf) 0 10%,var(--turf-2) 10% 20%)}
+.stage.scene-heat{background:linear-gradient(180deg,rgba(246,201,14,.12),transparent 30%),repeating-linear-gradient(90deg,var(--turf) 0 10%,var(--turf-2) 10% 20%)}
+.stage.scene-fatigue{background:linear-gradient(180deg,rgba(255,255,255,.06),transparent 30%),repeating-linear-gradient(90deg,var(--turf) 0 10%,var(--turf-2) 10% 20%)}
+.stage.scene-recovery{background:linear-gradient(180deg,rgba(126,224,138,.06),transparent 30%),repeating-linear-gradient(90deg,var(--turf) 0 10%,var(--turf-2) 10% 20%)}
+.stage.scene-nextday{background:linear-gradient(180deg,rgba(98,201,255,.06),transparent 30%),repeating-linear-gradient(90deg,var(--turf) 0 10%,var(--turf-2) 10% 20%)}
+.stage.scene-late .player-wrap{bottom:9%}
+.stage.scene-late.running .player{animation:bob .28s ease-in-out infinite}
+.stage.scene-ankle .player-wrap{bottom:8%}
+.stage.scene-ankle .player{transform:rotate(4deg)}
+.stage.scene-ankle .pain{opacity:1;animation:pulse 1s ease-in-out infinite}
+.stage.scene-heat .player-wrap{bottom:7%}
+.stage.scene-heat .sweat{opacity:1;animation:drip 1.4s ease-in infinite}
+.stage.scene-fatigue .player-wrap{bottom:6%}
+.stage.scene-fatigue .player{animation-duration:3.8s;transform:rotate(-4deg)}
+.stage.scene-fatigue .zz{opacity:1}
+.stage.scene-recovery .player-wrap{bottom:6%}
+.stage.scene-recovery .player{transform:rotate(-7deg)}
+.stage.scene-nextday .player-wrap{bottom:7%}
+.stage.scene-nextday.ready .player{transform:rotate(0deg)}
+.stage.scene-nextday.sore .pain{opacity:1;animation:pulse 1s ease-in-out infinite}
 .flash{position:absolute;inset:0;pointer-events:none;opacity:0;z-index:3}
 .flash.good{animation:flash .9s ease;background:radial-gradient(circle,rgba(126,224,138,.45),transparent 70%)}
 .flash.bad{animation:flash .9s ease;background:radial-gradient(circle,transparent 30%,rgba(255,91,79,.55))}
@@ -196,6 +236,75 @@ h2{font-size:clamp(28px,2.8vw,52px)}
 .timer.low{color:var(--warn)} .timer.over{color:var(--bad)}
 kbd{font-family:var(--body);border:1px solid var(--edge);border-bottom-width:2px;border-radius:4px;padding:0 5px;color:var(--chalk)}
 
+
+/* MATCH DAY DIRECTOR: each event has its own cinematography and reaction. */
+.stage{isolation:isolate;transition:background .65s ease,filter .45s ease;box-shadow:inset 0 0 95px rgba(0,0,0,.32)}
+.stage:after{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse at 50% 80%,transparent 35%,rgba(0,0,0,.35) 100%)}
+.stage .pitch-lines{transition:opacity .5s,transform .65s;z-index:1}
+.stage.scene-recovery .pitch-lines,.stage.scene-nextday .pitch-lines{opacity:.16;transform:scale(.94)}
+.stage.scene-heat:before{background:radial-gradient(circle at 87% 30%,rgba(255,232,117,.42),transparent 35%),linear-gradient(180deg,#24431a,#0b2b17 75%,transparent)}
+.stage.scene-recovery:before{background:linear-gradient(180deg,rgba(4,16,15,.92) 0%,rgba(12,38,27,.4) 100%)}
+.stage.scene-nextday:before{background:linear-gradient(180deg,rgba(20,50,72,.65),rgba(8,34,41,.26) 100%)}
+.stage.scene-recovery{background:repeating-linear-gradient(90deg,#10372e 0 10%,#164537 10% 20%)}
+.stage.scene-nextday{background:repeating-linear-gradient(90deg,#163b40 0 10%,#1d5051 10% 20%)}
+.player-wrap{transition:bottom .5s ease,left .5s ease,transform .6s ease,filter .45s ease}
+.player{transition:filter .45s;transform-origin:50% 90%}
+.player .arm-left,.player .arm-right,.player .head-group,.player .torso-group{transform-box:fill-box;transition:transform .55s ease}
+.player .arm-left{transform-origin:85% 10%}.player .arm-right{transform-origin:12% 10%}
+.player .head-group{transform-origin:center bottom}
+.stage.scene-late:not(.decision-made) .arm-left{transform:rotate(-24deg)}
+.stage.scene-late:not(.decision-made) .arm-right{transform:rotate(24deg)}
+.stage.scene-ankle:not(.decision-made) .leg-r{transform:rotate(12deg)}
+.stage.scene-fatigue:not(.decision-made) .head-group{transform:rotate(10deg)}
+.stage.scene-recovery:not(.decision-made) .arm-right{transform:rotate(-20deg)}
+.stage.scene-nextday:not(.decision-made) .arm-left{transform:rotate(-9deg)}
+.stage.decision-made .player{animation:none!important}
+.stage.reaction-good .player{filter:drop-shadow(0 0 12px rgba(126,224,138,.34))}
+.stage.reaction-ok .player{filter:drop-shadow(0 0 12px rgba(246,201,14,.34))}
+.stage.reaction-bad .player{filter:drop-shadow(0 0 12px rgba(255,91,79,.45))}
+.stage.action-stretch .arm-left{transform:rotate(122deg)}
+.stage.action-stretch .arm-right{transform:rotate(-122deg)}
+.stage.action-stretch .leg-l{transform:rotate(-18deg)}
+.stage.action-stretch .leg-r{transform:rotate(18deg)}
+.stage.action-limp .player{animation:limp 1.2s infinite ease-in-out!important}
+.stage.action-limp .leg-r{transform:rotate(22deg)}
+.stage.action-limp .arm-right{transform:rotate(-35deg)}
+.stage.action-drink .arm-right{transform:rotate(-132deg)}
+.stage.action-drink .head-group{transform:rotate(-16deg)}
+.stage.action-cool .arm-left{transform:rotate(62deg)}
+.stage.action-sub .player-wrap{left:60%}
+.stage.action-sub .arm-left,.stage.action-sub .arm-right{transform:rotate(100deg)}
+.stage.action-fatigue .player{animation:limp 1.5s infinite!important}
+.stage.action-fatigue .head-group{transform:rotate(15deg)}
+.stage.action-rest .player-wrap{bottom:11%;transform:translateX(-50%) rotate(-12deg)}
+.stage.action-rest .zz{opacity:1}
+.stage.action-rest .arm-left{transform:rotate(-30deg)}
+.stage.action-recover .arm-left{transform:rotate(110deg)}
+.stage.action-recover .arm-right{transform:rotate(-80deg)}
+.stage.action-ready .arm-left,.stage.action-ready .arm-right{transform:rotate(60deg)}
+.stage.action-ready .player{animation:celebrate .85s ease-in-out 2!important}
+.stage.action-warning .pain{opacity:1;animation:pulse .6s 3}
+.stage.action-warning .head-group{transform:rotate(18deg)}
+@keyframes limp{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(7px) rotate(5deg)}}
+@keyframes celebrate{0%,100%{transform:translateY(0)}50%{transform:translateY(-18px)}}
+/* consequence marquee over field, visible after votes */
+.outcome-banner{position:absolute;left:50%;top:23%;transform:translate(-50%,-12px) scale(.95);opacity:0;pointer-events:none;z-index:5;
+ background:rgba(3,19,11,.9);border:2px solid var(--gold);border-radius:14px;padding:12px 18px;
+ width:min(85%,360px);box-shadow:0 18px 45px rgba(0,0,0,.48);text-align:center;transition:opacity .38s,transform .38s}
+.outcome-banner.visible{opacity:1;transform:translate(-50%,0) scale(1)}
+.outcome-banner.good{border-color:var(--good)}.outcome-banner.ok{border-color:var(--gold)}.outcome-banner.bad{border-color:var(--bad)}
+.outcome-symbol{font-size:30px;line-height:1}.outcome-heading{font-family:var(--display);font-size:clamp(23px,2.2vw,38px);font-weight:800;line-height:1;text-transform:uppercase;margin:4px 0}
+.outcome-caption{font-size:clamp(12px,1vw,16px);color:var(--mist);font-weight:600}
+/* broadcast progress indicator */
+.round-progress{display:flex;gap:5px;position:absolute;bottom:13px;left:14px;z-index:4}
+.round-progress i{display:block;width:23px;height:5px;border-radius:6px;background:rgba(255,255,255,.3);transition:background .35s}
+.round-progress i.done{background:var(--good)}.round-progress i.current{background:var(--gold)}
+.stage .scene-note{background:rgba(0,0,0,.66)}
+.stage.scene-recovery .ball,.stage.scene-nextday .ball{opacity:.4}
+.stage.scene-fatigue .ball{opacity:.65}
+@media(max-width:860px){.outcome-banner{top:24%;width:min(83%,300px)}.outcome-heading{font-size:24px}.outcome-caption{font-size:12px}.stage .status-line{max-width:60%}}
+@media(prefers-reduced-motion:reduce){.stage.action-ready .player,.stage.action-limp .player,.stage.action-fatigue .player{animation:none!important}}
+
 @media (max-width:860px){
   .main{grid-template-columns:minmax(0,1fr)}
   .stage{height:auto;min-height:260px}
@@ -271,24 +380,41 @@ kbd{font-family:var(--body);border:1px solid var(--edge);border-bottom-width:2px
           <!-- shorts -->
           <path d="M40 100h40l3 26H63l-3-10-3 10H37z" fill="#0b0f0c"/>
           <!-- arms -->
+          <g class="arm-left">
           <rect x="28" y="58" width="12" height="44" rx="6" fill="#8a5a3c" transform="rotate(12 28 60)"/>
-          <rect x="80" y="58" width="12" height="44" rx="6" fill="#8a5a3c" transform="rotate(-12 92 60)"/>
+          </g><g class="arm-right"><rect x="80" y="58" width="12" height="44" rx="6" fill="#8a5a3c" transform="rotate(-12 92 60)"/>
+          </g>
           <!-- shirt -->
           <path d="M36 52 48 46h24l12 6 10 16-10 6-4-6v34H40V68l-4 6-10-6z" fill="#14713a" stroke="#f6c90e" stroke-width="2"/>
           <text x="60" y="88" text-anchor="middle" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="800" font-size="26" fill="#f6c90e">7</text>
           <!-- head -->
+          <g class="head-group">
           <rect x="54" y="38" width="12" height="10" fill="#8a5a3c"/>
           <circle cx="60" cy="27" r="15" fill="#8a5a3c"/>
           <path d="M45 24c0-10 7-15 15-15s15 5 15 13c-5-4-11-5-15-5s-10 2-15 7z" fill="#1b120c"/>
           <circle cx="55" cy="28" r="1.8" fill="#111"/><circle cx="65" cy="28" r="1.8" fill="#111"/>
           <path d="M55 35q5 3 10 0" stroke="#111" stroke-width="1.6" fill="none"/>
+          </g>
           <!-- sweat -->
           <g class="sweat" fill="#62c9ff"><path d="M78 18c2 4 3 6 0 7s-3-3 0-7z"/><path d="M42 26c2 4 3 6 0 7s-3-3 0-7z"/></g>
           <!-- zzz -->
           <g class="zz" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="800" fill="#f3f7f1"><text x="82" y="12" font-size="12">z</text><text x="92" y="4" font-size="9">z</text></g>
         </svg>
       </div>
+      <div class="scene-props" aria-hidden="true">
+        <div class="prop cone" id="prop-cone"><svg viewBox="0 0 50 60"><path d="M25 5 45 53H5z" fill="#f6c90e" stroke="#111" stroke-width="3"/><path d="M14 34h22" stroke="#fff" stroke-width="4"/><path d="M11 45h28" stroke="#fff" stroke-width="4"/></svg></div>
+        <div class="prop bag" id="prop-bag"><svg viewBox="0 0 70 60"><rect x="10" y="18" width="50" height="30" rx="8" fill="#111" stroke="#f6c90e" stroke-width="3"/><path d="M24 18c0-7 4-12 11-12s11 5 11 12" fill="none" stroke="#f6c90e" stroke-width="3"/><path d="M18 31h34" stroke="#14713a" stroke-width="4"/></svg></div>
+        <div class="prop med" id="prop-med"><svg viewBox="0 0 70 70"><circle cx="35" cy="35" r="30" fill="#f3f7f1" stroke="#ff5b4f" stroke-width="4"/><path d="M35 18v34M18 35h34" stroke="#ff5b4f" stroke-width="8" stroke-linecap="round"/></svg></div>
+        <div class="prop sun-hot" id="prop-sun"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="20" fill="#f6c90e"/><g stroke="#f6c90e" stroke-width="6" stroke-linecap="round"><path d="M50 8v18M50 74v18M8 50h18M74 50h18M20 20l12 12M68 68l12 12M20 80l12-12M68 32l12-12"/></g></svg></div>
+        <div class="heat-lines" id="prop-heat"><i></i><i></i><i></i></div>
+        <div class="prop bottle" id="prop-bottle"><svg viewBox="0 0 50 100"><rect x="17" y="6" width="16" height="14" rx="3" fill="#dff7ff" stroke="#0d5f80" stroke-width="3"/><path d="M14 20h22v16c0 6 8 10 8 17v31c0 7-6 12-13 12H19c-7 0-13-5-13-12V53c0-7 8-11 8-17z" fill="#62c9ff" fill-opacity=".75" stroke="#0d5f80" stroke-width="3"/><path d="M13 46h24" stroke="#dff7ff" stroke-width="4"/></svg></div>
+        <div class="prop substitution-board" id="prop-board"><svg viewBox="0 0 90 120"><rect x="18" y="6" width="54" height="108" rx="8" fill="#111" stroke="#f3f7f1" stroke-width="4"/><rect x="28" y="20" width="34" height="26" rx="3" fill="#14713a"/><rect x="28" y="56" width="34" height="26" rx="3" fill="#ff5b4f"/><text x="45" y="39" text-anchor="middle" font-size="18" font-weight="800" fill="#f3f7f1">7</text><text x="45" y="75" text-anchor="middle" font-size="18" font-weight="800" fill="#f3f7f1">12</text></svg></div>
+        <div class="prop bench" id="prop-bench"><svg viewBox="0 0 140 70"><rect x="10" y="28" width="120" height="14" rx="7" fill="#f3f7f1" opacity=".9"/><rect x="18" y="16" width="104" height="12" rx="6" fill="#d6e6da"/><path d="M26 42v18M114 42v18" stroke="#d6e6da" stroke-width="6"/></svg></div>
+        <div class="prop calendar" id="prop-calendar"><svg viewBox="0 0 100 100"><rect x="10" y="18" width="80" height="72" rx="10" fill="#f3f7f1" stroke="#111" stroke-width="4"/><rect x="10" y="18" width="80" height="18" rx="10" fill="#62c9ff" stroke="#111" stroke-width="4"/><path d="M28 10v16M72 10v16" stroke="#111" stroke-width="6" stroke-linecap="round"/><text x="50" y="66" text-anchor="middle" font-size="34" font-weight="800" fill="#111">+1</text></svg></div>
+      </div>
       <svg class="ball" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="#f3f7f1" stroke="#05130b" stroke-width="2"/><path d="m20 11 7 5-2.7 8h-8.6L13 16z" fill="#05130b"/><path d="M20 11V3M27 16l7-3M24.3 24l5 6M15.7 24l-5 6M13 16l-7-3" stroke="#05130b" stroke-width="2"/></svg>
+      <div class="outcome-banner" id="outcome-banner" aria-live="polite"><div class="outcome-symbol" id="outcome-icon">★</div><div class="outcome-heading" id="outcome-heading">Smart choice</div><div class="outcome-caption" id="outcome-caption">Great decision</div></div>
+      <div class="round-progress" id="round-progress" aria-label="Round progress"></div>
       <div class="status-line" id="status-line"></div>
       <div class="flash" id="flash"></div>
       <canvas id="confetti"></canvas>
@@ -317,37 +443,37 @@ var START = {energy:100, hydration:70, risk:20};
 var ACTIVITY_SECONDS = 300; // 6 rounds + short Q&A: about 35–40 seconds each
 
 var SCENES = [
-  {tag:"Round 1/6 · Before kick-off", clock:"-5'", title:"The late arrival",
+  {visual:"late",note:"Quick warm-up zone",tag:"Round 1/6 · Before kick-off", clock:"-5'", title:"The late arrival",
    text:"Sam arrives just five minutes before kick-off. His usual warm-up needs more time. What should the coach do?", host:"Luis", question:"Which preparation step matters most?", options:[
     {label:"Start a short progressive warm-up and ask the coach for a later substitution",fx:{energy:-4,risk:-12},rating:"good",feedback:"Best balance. Sam starts moving progressively and does not rush into intense play.",lesson:"Allow enough time for a gradual warm-up."},
     {label:"Join the easy passing drill and gradually increase the pace",fx:{energy:-6,risk:2},rating:"ok",feedback:"A useful start, but easy passing alone may not prepare him for the full intensity.",lesson:"Ball drills should be part of a broader warm-up."},
     {label:"Focus on standing stretches, then start playing at a reduced pace",fx:{energy:-2,risk:13},rating:"bad",feedback:"Lower intensity helps, but standing stretches alone do not substitute for progressive active preparation.",lesson:"Use progressive movement, not only static stretching."}
    ]},
-  {tag:"Round 2/6 · First half", clock:"18'", title:"The ankle twist",
+  {visual:"ankle",note:"Possible ankle problem",tag:"Round 2/6 · First half", clock:"18'", title:"The ankle twist",
    text:"At minute 18 Sam turns quickly. His ankle feels uncomfortable, but he can walk. The team needs him. What is the safest next step?",host:"Nelson",question:"Why could playing through discomfort be a problem?",options:[
     {label:"Pause, tell the coach and have the ankle assessed before returning",fx:{energy:4,risk:-12},rating:"good",feedback:"Good judgement. A new ankle problem should not be ignored; assess it before deciding to return.",lesson:"Do not play through a possible injury."},
     {label:"Walk briefly, test the ankle and rejoin only if the discomfort fades",fx:{energy:1,risk:10},rating:"ok",feedback:"Checking symptoms matters, but improvement after a short walk does not rule out injury.",lesson:"Tell a coach and get an appropriate assessment."},
     {label:"Move to defense and avoid sprinting for the next ten minutes",fx:{energy:3,risk:24},rating:"bad",feedback:"Changing position does not solve a possible injury and may make it worse.",lesson:"Stop and assess possible injuries."}
    ]},
-  {tag:"Round 3/6 · Hot weather", clock:"35'", title:"A hot afternoon",
+  {visual:"heat",note:"Heat and hydration",tag:"Round 3/6 · Hot weather", clock:"35'", title:"A hot afternoon",
    text:"At 35 minutes in Barranquilla, Sam is thirsty and tired, but not dizzy. There is a short break. What plan works best?",host:"Breiner",question:"Why might two choices seem reasonable?",options:[
     {label:"Drink water, cool down in shade and tell the coach how he feels",fx:{hydration:24,energy:5,risk:-7},rating:"good",feedback:"Good all-round plan: fluid, cooling and honest communication about symptoms.",lesson:"Use breaks for fluids, cooling and checking symptoms."},
     {label:"Drink some water and return when the break ends",fx:{hydration:19,energy:1,risk:2},rating:"ok",feedback:"Hydration helps. He should also cool down and be alert to warning symptoms.",lesson:"Do not overlook heat exposure and symptoms."},
     {label:"Cool down in shade and save water until half-time",fx:{hydration:-12,energy:4,risk:12},rating:"bad",feedback:"Shade helps, but delaying drinking while thirsty is a poor trade-off.",lesson:"Drink during available breaks."}
    ]},
-  {tag:"Round 4/6 · Second half", clock:"65'", title:"The coach's substitution",
+  {visual:"fatigue",note:"Fatigue management",tag:"Round 4/6 · Second half", clock:"65'", title:"The coach's substitution",
    text:"Sam has played for an hour. He is tired and his sprinting is slower, but he has no injury symptoms. What should the coach choose?",host:"Joseph",question:"How does teamwork help Sam stay healthy?",options:[
     {label:"Substitute Sam and let a fresh teammate finish the match",fx:{energy:13,risk:-11},rating:"good",feedback:"A substitution manages accumulated fatigue and supports the team.",lesson:"Teamwork includes recognizing fatigue."},
     {label:"Keep Sam on for ten minutes with fewer high-intensity runs",fx:{energy:-7,risk:6},rating:"ok",feedback:"Reducing workload may help, but fatigue continues and he needs monitoring.",lesson:"Adjust playing time when fatigue increases."},
     {label:"Move Sam to a less demanding position until the match ends",fx:{energy:-11,risk:13},rating:"bad",feedback:"A new position may be less intense, but playing while fatigued still adds load.",lesson:"A change of position is not the same as recovery."}
    ]},
-  {tag:"Round 5/6 · Final whistle", clock:"90'", title:"Recovery starts now",
+  {visual:"recovery",note:"Recovery starts now",tag:"Round 5/6 · Final whistle", clock:"90'", title:"Recovery starts now",
    text:"The match ends. Sam is sweaty and tired. He has an hour before going home. Which recovery plan is most complete?",host:"Oscar",question:"What part of recovery is easiest to forget?",options:[
     {label:"Cool down, drink water, have a meal and prepare for a good night's sleep",fx:{energy:19,hydration:20,risk:-10},rating:"good",feedback:"A balanced plan includes fluids, nutrition, gradual cooling down and later sleep.",lesson:"Recovery involves several habits, not one shortcut."},
     {label:"Have a meal and rest, then drink plenty of water at home",fx:{energy:12,hydration:8,risk:-3},rating:"ok",feedback:"Food and rest are helpful, but replacing fluids should not be put off unnecessarily.",lesson:"Hydrate after the match as well as eating and resting."},
     {label:"Take a cold shower, stretch and skip food until dinner",fx:{energy:7,hydration:-5,risk:5},rating:"bad",feedback:"Cooling down may feel good, but this plan neglects fluids and timely food.",lesson:"Do not treat a shower as complete recovery."}
    ]},
-  {tag:"Round 6/6 · Next day",clock:"+1 day",title:"The next-day invitation",
+  {visual:"nextday",note:"Ready tomorrow?",tag:"Round 6/6 · Next day",clock:"+1 day",title:"The next-day invitation",
    text:"Sam's friends invite him to play another competitive match early tomorrow. He still feels tired after today's match. What is the better plan?",host:"Nelson",question:"What advice would you give your own friend?",options:[
     {label:"Choose a recovery day, sleep well and plan the next intense match later",fx:{energy:21,hydration:7,risk:-13},rating:"good",feedback:"A recovery day makes sense after a demanding match, especially with lingering fatigue.",lesson:"Make room for recovery between demanding matches."},
     {label:"Sleep well and decide tomorrow morning whether to play fewer minutes",fx:{energy:12,hydration:5,risk:6},rating:"ok",feedback:"Reassessing is sensible, but a reduced match still creates physical load if Sam is not recovered.",lesson:"Check readiness and consider rest, not just fewer minutes."},
@@ -425,8 +551,9 @@ function drawBars(fxShown){
   var notes = [];
   if (s.hydration < 40) notes.push("Thirsty");
   if (s.energy < 40) notes.push("Tired");
-  if (s.risk >= 60) notes.push("Muscle pain");
-  $("status-line").innerHTML = notes.map(function(n){ return '<span class="chip">' + n + '</span>'; }).join(" ");
+  if (s.risk >= 60) notes.push("Higher simulated risk");
+  // Scene director renders the readable scenario badge; stats still affect the player via classes.
+  $("status-line").setAttribute("data-health", notes.join(", "));
 }
 
 function flash(kind){
@@ -445,9 +572,100 @@ function render(){
   if (state.screen === "teacher") return renderTeacher();
 }
 
+var ACTION_STYLES = [
+  ["stretch","stretch","warning"],
+  ["rest","limp","limp"],
+  ["drink","cool","warning"],
+  ["sub","fatigue","fatigue"],
+  ["recover","rest","warning"],
+  ["rest","ready","warning"]
+];
+var OUTCOME_COPY = [
+  [["⚡","WARM-UP STARTED","Preparing safely"],["⚽","BALL DRILLS","A useful start"],["⚠","NOT ENOUGH","Limited preparation"]],
+  [["✚","ANKLE CHECK","Safety comes first"],["⚠","TESTING IT","Symptoms need attention"],["✖","PLAYING HURT","Risk of aggravation"]],
+  [["💧","WATER BREAK","Hydrate and cool down"],["💦","KEEP DRINKING","Cooling also matters"],["☀","TOO HOT","Don't delay water"]],
+  [["⇄","SUBSTITUTION","Good team management"],["⏳","MORE MINUTES","Watch for fatigue"],["⚠","STILL EXHAUSTED","Position is not recovery"]],
+  [["✓","RECOVERY PLAN","Strong habits"],["◷","PARTIAL RECOVERY","Fluids matter too"],["✖","MISSED STEPS","Food and water matter"]],
+  [["☾","REST DAY","Tomorrow can wait"],["?","CHECK READINESS","Reduced minutes still count"],["⚠","NOT RECOVERED","Warm-up isn't rest"]]
+];
+function updateProgress(){
+  var index = state.screen === "title" ? -1 : state.screen === "scene" || state.screen === "half" ? state.scene : 6;
+  $("round-progress").innerHTML = Array.from({length:6},function(_,i){return '<i class="'+(i<index?'done':i===index?'current':'')+'"></i>';}).join("");
+}
+function showOutcome(round,choice){
+  var o = SCENES[round].options[choice];
+  var copy = OUTCOME_COPY[round][choice];
+  var el = $("outcome-banner");
+  $("outcome-icon").textContent = copy[0];
+  $("outcome-heading").textContent = copy[1];
+  $("outcome-caption").textContent = copy[2];
+  el.className = "outcome-banner visible " + o.rating;
+  stage.classList.add("decision-made","reaction-"+o.rating,"action-"+ACTION_STYLES[round][choice]);
+  // Scene-specific props react as well, without external images or requests.
+  if (round === 2 && choice === 0) $("prop-bottle").classList.add("show");
+  if (round === 3 && choice === 0) $("prop-board").classList.add("show");
+  if ((round === 1 || round === 5) && choice === 0) $("prop-med").classList.remove("show");
+}
+function clearStageScenes(){
+  stage.classList.remove("scene-late","scene-ankle","scene-heat","scene-fatigue","scene-recovery","scene-nextday","ready","sore","running","is-thirsty","is-hurt","is-tired","decision-made","reaction-good","reaction-ok","reaction-bad","action-stretch","action-limp","action-drink","action-cool","action-sub","action-fatigue","action-rest","action-recover","action-ready","action-warning");
+  $("outcome-banner").className="outcome-banner";
+  ["prop-cone","prop-bag","prop-med","prop-sun","prop-bottle","prop-board","prop-bench","prop-calendar"].forEach(function(id){ var el=$(id); if(el) el.classList.remove("show"); });
+}
+
+function setStageVisual(kind, choiceIndex){
+  clearStageScenes();
+  var note = "Match day";
+  if (kind === "title") {
+    stage.classList.add("scene-late","running");
+    $("prop-cone").classList.add("show");
+    $("prop-bag").classList.add("show");
+    note = "Smart Player challenge";
+  } else if (kind === "late") {
+    stage.classList.add("scene-late","running");
+    $("prop-cone").classList.add("show");
+    $("prop-bag").classList.add("show");
+    note = "Sam is late";
+  } else if (kind === "ankle") {
+    stage.classList.add("scene-ankle","is-hurt");
+    $("prop-med").classList.add("show");
+    note = "Sam feels ankle pain";
+  } else if (kind === "heat") {
+    stage.classList.add("scene-heat","is-thirsty");
+    $("prop-sun").classList.add("show");
+    $("prop-bottle").classList.add("show");
+    note = "Hot weather break";
+  } else if (kind === "fatigue") {
+    stage.classList.add("scene-fatigue","is-tired");
+    $("prop-board").classList.add("show");
+    note = "Coach considers a substitution";
+  } else if (kind === "recovery") {
+    stage.classList.add("scene-recovery");
+    $("prop-bench").classList.add("show");
+    $("prop-bottle").classList.add("show");
+    note = "Post-match recovery";
+  } else if (kind === "nextday") {
+    stage.classList.add("scene-nextday");
+    $("prop-calendar").classList.add("show");
+    if (choiceIndex === 1) { stage.classList.add("sore","is-hurt"); note = "The next day: maybe too sore"; }
+    else { stage.classList.add("ready"); note = "The next day: make a smart choice"; }
+  } else if (kind === "final") {
+    stage.classList.add("scene-nextday","ready");
+    $("prop-calendar").classList.add("show");
+    note = "Full-time analysis";
+  } else if (kind === "questions") {
+    stage.classList.add("scene-recovery");
+    $("prop-bench").classList.add("show");
+    note = "Questions and reflection";
+  }
+  $("status-line").innerHTML = '<span class="scene-note">' + note + '</span>';
+  updateProgress();
+  if(state.screen === "scene" && state.phase === "reveal" && state.choices[state.scene]) showOutcome(state.scene,state.choices[state.scene].i);
+}
+
 function renderTitle(){
   $("clock").textContent = "--'";
   $("scene-chip").textContent = "Match day";
+  setStageVisual("title");
   panel.innerHTML =
     '<div class="eyebrow">Football &amp; Health · ILE Talks</div>' +
     '<h1>Play smart,<br><em>stay healthy</em></h1>' +
@@ -490,6 +708,7 @@ function renderScene(){
   var sc = SCENES[state.scene];
   $("clock").textContent = sc.clock;
   $("scene-chip").textContent = sc.tag;
+  setStageVisual(sc.visual, state.phase === "reveal" && state.choices[state.scene] ? state.choices[state.scene].i : -1);
   var total = state.votes[0] + state.votes[1] + state.votes[2];
   var html = '<div class="eyebrow">' + sc.tag + '</div><h2>' + sc.title + '</h2>';
 
@@ -594,6 +813,7 @@ function next(){
 function renderHalf(){
   var h = HALVES[state.scene];
   $("scene-chip").textContent = h.title;
+  setStageVisual((SCENES[state.scene]||{}).visual || "late");
   stage.classList.add("running");
   panel.innerHTML = '<div class="eyebrow">The match goes on</div><h2>' + h.title + '</h2>' +
     '<p class="situation">' + h.text + '</p>' +
@@ -630,6 +850,12 @@ function renderFinal(){
   var r = classify(state.stats), R = RESULTS[r];
   $("clock").textContent = "FT";
   $("scene-chip").textContent = "Full time";
+  setStageVisual("final");
+  stage.classList.add(r === "healthy" ? "action-ready" : r === "risk" ? "action-warning" : "action-rest");
+  $("outcome-icon").textContent = r === "healthy" ? "🏆" : r === "risk" ? "⚠" : "◷";
+  $("outcome-heading").textContent = R.title;
+  $("outcome-caption").textContent = R.sub;
+  $("outcome-banner").className="outcome-banner visible "+(r==="healthy"?"good":r==="risk"?"bad":"ok");
   var tips = [];
   var recap = SCENES.map(function(sc, n){
     var o = sc.options[state.choices[n].i];
@@ -651,6 +877,7 @@ function renderFinal(){
 }
 
 function renderOpen(){
+  setStageVisual("questions");
   panel.innerHTML = '<div class="eyebrow">Your turn · Joseph asks</div>' +
     '<p class="big-q">What are you going to do differently at your next match?</p>' +
     '<div class="coach"><div class="eyebrow">You can say</div><div class="frames">' +
@@ -661,6 +888,7 @@ function renderOpen(){
 
 function renderTeacher(){
   $("scene-chip").textContent = "Questions";
+  setStageVisual("questions");
   panel.innerHTML = '<div class="eyebrow">Referee\'s whistle</div>' +
     '<p class="big-q">Do you have any questions for us?</p>' +
     '<div class="team">' +
